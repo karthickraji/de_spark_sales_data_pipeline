@@ -9,6 +9,6 @@ df = (
     .option("inferSchema", "true")
     .csv(f"{HDFS_RAW_PATH}/sales_data_sample.csv")
 )
-df.write.mode("overwrite").parquet(f"{HDFS_STAGING_PATH}/sales_data_sample.parquet")
+df.write.mode("overwrite").parquet(HDFS_STAGING_PATH)
 
 spark_session.stop()
