@@ -14,7 +14,7 @@ default_args = {
 
 with DAG(
     dag_id="sales_data_spark_pipeline",
-    start_date=datetime(2026, 3, 9),
+    start_date=datetime(2026, 3, 11),
     schedule=timedelta(minutes=5),
     # schedule="@daily",
     catchup=False
@@ -22,5 +22,5 @@ with DAG(
 
     task1 = BashOperator(
         task_id="run_etl",
-       bash_command="cd /home/karthick/PycharmProjects/sales_data_pipeline_using_spark && bash scripts/run_pipeline.sh;"
+        bash_command="cd /home/karthick/PycharmProjects/sales_data_pipeline_using_spark && bash scripts/run_pipeline.sh;"
     )
