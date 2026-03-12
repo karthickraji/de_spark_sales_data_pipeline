@@ -3,3 +3,4 @@ pandas
 mysql-connector-python
 apache-airflow
 pytest
+apache-airflow-providers-apache-spark
