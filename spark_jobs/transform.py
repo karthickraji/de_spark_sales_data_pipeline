@@ -1,17 +1,35 @@
 from config.spark_config import get_spark_session
 from config.basic_config import HDFS_STAGING_PATH, HDFS_PROCESSED_PATH
+from config.logging_config import setup_logging
+import logging
 
+setup_logging()
 
-spark_session = get_spark_session()
+logger = logging.getLogger(__name__)
 
-df = spark_session.read.parquet(HDFS_STAGING_PATH)
+def remove_negative_values(df, field):
+    return df[df[f'{field}'] > 0]
 
-# Remove invalid records
-df_clean = df.filter(df.quantity > 0)
-df_clean = df_clean.dropna()
-df_clean = df_clean.dropDuplicates(["order_id"])
+def remove_null_values(df):
+    return df.dropna()
 
-# Save processed data
-df_clean.write.mode("overwrite").parquet(HDFS_PROCESSED_PATH)
+def remove_duplicates(df, data_fields):
+    return df.dropDuplicates(data_fields)
 
-print("Processed data loaded to HDFS successfully")
+def transform_data(spark):
+    df = spark.read.parquet(HDFS_STAGING_PATH)
+
+    # Remove invalid records
+    df_clean = remove_negative_values(df, "quantity")
+    df_clean = remove_null_values(df_clean)
+    df_clean = remove_duplicates(df_clean, "order_id")
+    logging.info("Removed invalid rows")
+
+    # Save processed data
+    df_clean.write.mode("overwrite").parquet(HDFS_PROCESSED_PATH)
+    logging.info("Processed data loaded to HDFS successfully")
+
+if __name__ == "__main__":
+    spark_session = get_spark_session()
+    transform_data(spark_session)
+    spark_session.stop()

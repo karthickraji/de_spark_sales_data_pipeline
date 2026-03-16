@@ -2,6 +2,12 @@ from config.spark_config import get_spark_session
 from pyspark.sql.functions import sum as _sum
 from config.db_config import *
 from config.basic_config import HIVE_DB, HIVE_TABLE
+from config.logging_config import setup_logging
+import logging
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
 
 spark_session = get_spark_session()
 
@@ -21,7 +27,7 @@ daily_sales.write \
 .mode("overwrite") \
 .save()
 
-print("Daily sales data loaded to mysql successfully")
+logging.info("Daily sales data loaded to mysql successfully")
 
 # Top products
 top_products = (
@@ -38,6 +44,6 @@ top_products.write \
 .mode("overwrite") \
 .save()
 
-print("Top products data loaded to mysql successfully")
+logging.info("Top products data loaded to mysql successfully")
 
-print("Aggregated data loaded to mysql successfully")
+logging.info("Aggregated data loaded to mysql successfully")
