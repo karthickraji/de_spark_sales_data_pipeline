@@ -5,45 +5,60 @@ from config.basic_config import HIVE_DB, HIVE_TABLE
 from config.logging_config import setup_logging
 import logging
 
-setup_logging()
+def daily_sales_data(df):
+    # Daily sales
+    daily_sales = (
+        df.groupBy("order_date").agg(_sum("total_amount").alias("total_revenue"))
+    )
 
-logger = logging.getLogger(__name__)
+    daily_sales.write \
+        .format("jdbc") \
+        .option("url", f"jdbc:mysql://{DB_HOST}:{DB_PORT}/{DB_NAME}") \
+        .option("dbtable", "daily_sales") \
+        .option("user", DB_USER) \
+        .option("password", DB_PASSWORD) \
+        .mode("overwrite") \
+        .save()
 
-spark_session = get_spark_session()
+    logging.info("Daily sales data loaded to mysql successfully")
 
-df = spark_session.table(f"{HIVE_DB}.{HIVE_TABLE}")
+def top_products_data(df):
+    # Top products
+    top_products = (
+        df.groupBy("product").agg(_sum("quantity").alias("total_qty"))
+        .orderBy("total_qty", ascending=False).limit(10)
+    )
 
-# Daily sales
-daily_sales = (
-    df.groupBy("order_date").agg(_sum("total_amount").alias("total_revenue"))
-)
+    top_products.write \
+        .format("jdbc") \
+        .option("url", f"jdbc:mysql://{DB_HOST}:{DB_PORT}/{DB_NAME}") \
+        .option("dbtable", "top_products") \
+        .option("user", DB_USER) \
+        .option("password", DB_PASSWORD) \
+        .mode("overwrite") \
+        .save()
 
-daily_sales.write \
-.format("jdbc") \
-.option("url", f"jdbc:mysql://{DB_HOST}:{DB_PORT}/{DB_NAME}") \
-.option("dbtable", "daily_sales") \
-.option("user",DB_USER) \
-.option("password",DB_PASSWORD) \
-.mode("overwrite") \
-.save()
+    logging.info("Top products data loaded to mysql successfully")
 
-logging.info("Daily sales data loaded to mysql successfully")
+def main():
+    setup_logging()
+    logger = logging.getLogger(__name__)
 
-# Top products
-top_products = (
-    df.groupBy("product").agg(_sum("quantity").alias("total_qty"))
-    .orderBy("total_qty", ascending=False).limit(10)
-)
+    print("Aggregation Job Started...")
 
-top_products.write \
-.format("jdbc") \
-.option("url", f"jdbc:mysql://{DB_HOST}:{DB_PORT}/{DB_NAME}") \
-.option("dbtable", "top_products") \
-.option("user",DB_USER) \
-.option("password",DB_PASSWORD) \
-.mode("overwrite") \
-.save()
+    spark_session = get_spark_session()
 
-logging.info("Top products data loaded to mysql successfully")
+    try:
+        df = spark_session.table(f"{HIVE_DB}.{HIVE_TABLE}")
+        daily_sales_data(df)
+        top_products_data(df)
+        logging.info("Aggregated data loaded to mysql successfully")
+    except Exception as e:
+        logger.error(f"Error: {e}", exc_info=True)
+    finally:
+        spark_session.stop()
+        print("Aggregation Job Finished")
 
-logging.info("Aggregated data loaded to mysql successfully")
+
+if __name__ == "__main__":
+    main()
