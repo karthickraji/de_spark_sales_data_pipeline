@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from datetime import datetime, timedelta
+from config.basic_config import HDFS_PROCESSED_PATH, HDFS_STAGING_PATH
 
 PROJECT_PATH = "/home/karthick/PycharmProjects/sales_data_pipeline_using_spark"
 
@@ -11,16 +12,14 @@ default_args = {
     "retry_delay": timedelta(minutes=2),
 }
 
-def processed_data_quality_check():
+def has_processed_data():
     import os
-    path = "/project_one_data/processed/sales"
-    if not os.path.exists(path):
+    if not os.path.exists(HDFS_PROCESSED_PATH):
         raise ValueError("Processed data not found!")
 
-def staging_data_quality_check():
+def has_staging_data():
     import os
-    path = "/project_one_data/staging/sales"
-    if not os.path.exists(path):
+    if not os.path.exists(HDFS_STAGING_PATH):
         raise ValueError("Staging data not found!")
 
 with DAG(
@@ -50,14 +49,14 @@ with DAG(
         conn_id="spark_default"
     )
 
-    processed_data_qty_check = PythonOperator(
+    processed_data_check = PythonOperator(
         task_id="processed_data_quality_check",
-        python_callable=processed_data_quality_check
+        python_callable=has_processed_data
     )
 
-    staging_data_qty_check = PythonOperator(
+    staging_data_check = PythonOperator(
         task_id="staging_data_quality_check",
-        python_callable=staging_data_quality_check
+        python_callable=has_staging_data
     )
 
     aggregate = SparkSubmitOperator(
@@ -66,4 +65,4 @@ with DAG(
         conn_id="spark_default"
     )
 
-    extract >> staging_data_qty_check >> transform >> processed_data_qty_check >> load_hive >> aggregate
+    extract >> staging_data_check >> transform >> processed_data_check >> load_hive >> aggregate

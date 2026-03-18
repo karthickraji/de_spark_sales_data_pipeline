@@ -1,6 +1,7 @@
-pyspark
+pyspark==3.5.1
 pandas
 mysql-connector-python
 apache-airflow
 pytest
 apache-airflow-providers-apache-spark
+chispa
